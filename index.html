@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>篠崎太智のホームページ</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+/* ===== 全体 ===== */
+html, body {
+    height: 100%;
+    margin: 0;
+    font-family: 'Noto Sans JP', sans-serif;
+    background: url("image/profile.jpg") no-repeat center center fixed;
+    background-size: cover;
+    color: white;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.overlay {
+    background: linear-gradient(135deg, rgba(0,0,0,0.75), rgba(0,0,0,0.55));
+    flex: 1;
+    padding-bottom: 20px;
+}
+
+h1 {
+    font-family: 'Orbitron', sans-serif;
+    text-align: center;
+    padding: 30px;
+    font-size: 2.5em;
+    text-shadow: 0 0 8px rgba(0,198,255,0.7);
+}
+
+.tabbar {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    background: rgba(0,0,0,0.8);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.tabbar button {
+    padding: 12px 25px;
+    border: none;
+    border-radius: 25px;
+    background: #222;
+    color: white;
+    cursor: pointer;
+    font-weight: 600;
+    transition: 0.3s;
+}
+
+.tabbar button.active {
+    background: #00c6ff;
+    color: #000;
+}
+
+.tabcontent {
+    display: none;
+    padding: 50px 20px;
+    text-align: center;
+}
+
+.card {
+    background: rgba(255,255,255,0.1);
+    padding: 30px;
+    margin: 30px auto;
+    max-width: 700px;
+    border-radius: 20px;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+/* ===== プロフィール画像 ===== */
+.profile-img {
+    display: inline-block;
+    margin-bottom: 20px;
+}
+.profile-img img {
+    border-radius: 50%;
+    width: 240px;
+    height: 240px;
+    object-fit: cover;
+    border: 2px solid #00c6ff;
+}
+
+/* ===== 入力フォーム ===== */
+input, textarea {
+    width: 90%;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    margin-bottom: 15px;
+    font-size: 1em;
+}
+
+textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+
+button {
+    padding: 10px 25px;
+    border: none;
+    border-radius: 20px;
+    background: #0072ff;
+    color: white;
+    cursor: pointer;
+    font-weight: 600;
+    transition: 0.3s;
+}
+
+button:hover {
+    background: #00c6ff;
+    color: #000;
+}
+
+/* ===== Footer ===== */
+footer {
+    text-align: center;
+    padding: 15px;
+    background: rgba(0,0,0,0.8);
+    flex-shrink: 0;
+}
+
+/* ===== コメント ===== */
+.comment-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    background: rgba(0,0,0,0.4);
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 15px;
+}
+
+.comment-card .icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: #0072ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 1.2em;
+}
+
+.comment-content {
+    text-align: left;
+    flex: 1;
+}
+
+.comment-content p {
+    margin: 3px 0;
+}
+
+.comment-content b {
+    color: #00c6ff;
+}
+
+.longtext, .short {
+    text-align: left;
+}
+/* ===== Gallery ===== */
+.gallery {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+}
+
+.gallery img {
+    width: 200px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 15px;
+    cursor: pointer;
+    transition: 0.3s;
+    border: 2px solid #00c6ff;
+}
+
+.gallery img:hover {
+    transform: scale(1.05);
+    border-color: #ffffff;
+}
+
+/* 拡大表示用オーバーレイ */
+#imgOverlay {
+    position: fixed;
+    display: none;
+    top:0; left:0;
+    width:100%; height:100%;
+    background: rgba(0,0,0,0.8);
+    justify-content: center;
+    align-items: center;
+    z-index: 50;
+}
+
+#imgOverlay img {
+    max-width: 90%;
+    max-height: 90%;
+    border-radius: 20px;
+}
+</style>
+
+<script>
+/* ===== タブ ===== */
+function openTab(tabName, el){
+    let tabs = document.getElementsByClassName("tabcontent");
+    let buttons = document.getElementsByClassName("tabbtn");
+
+    for(let t of tabs){t.style.display="none";}
+    for(let b of buttons){b.classList.remove("active");}
+
+    document.getElementById(tabName).style.display="block";
+    if(el) el.classList.add("active");
+
+    if(tabName==="commentTab") renderAllComments();
+}
+
+window.onload = function(){
+    document.getElementById("defaultOpen").click();
+    increaseViews();
+    loadGame();
+    loadClubContent();
+};
+
+/* ===== TurboWarp切替 ===== */
+async function loadGame(){
+    const container = document.getElementById("gameContainer");
+    container.innerHTML = "";
+
+    const turboURL = "https://turbowarp.org/1208697375/embed";
+    const scratchURL = "https://scratch.mit.edu/projects/1208697375/embed";
+
+    let useScratch = false;
+
+    try{
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 3000);
+
+        await fetch("https://turbowarp.org/", {
+            method: "HEAD",
+            mode: "no-cors",
+            signal: controller.signal
+        });
+
+        clearTimeout(timeout);
+    }catch{
+        useScratch = true;
+    }
+
+    const iframe = document.createElement("iframe");
+    iframe.width = "482";
+    iframe.height = "412";
+    iframe.allowFullscreen = true;
+    iframe.src = useScratch ? scratchURL : turboURL;
+
+    container.appendChild(iframe);
+}
+
+/* ===== コメント ===== */
+function getComments(){ return JSON.parse(localStorage.getItem("comments")||"[]"); }
+function saveComments(data){ localStorage.setItem("comments",JSON.stringify(data)); }
+function renderAllComments(){
+    let comments = getComments();
+    let container = document.getElementById("comments");
+    container.innerHTML = "";
+    comments.slice().reverse().forEach(c=>{
+        let div=document.createElement("div");
+        div.classList.add("comment-card");
+        const initial = c.author ? c.author[0].toUpperCase() : "?";
+        div.innerHTML=`<div class="icon">${initial}</div>
+                         <div class="comment-content">
+                            <p><b>${c.author}</b></p>
+                            <p>${c.message}</p>
+                         </div>`;
+        container.appendChild(div);
+    });
+}
+function submitComment(){
+    let name = document.getElementById("name").value;
+    let message = document.getElementById("message").value;
+    if(!name||!message)return;
+    let comments = getComments();
+    comments.push({author:name,message:message});
+    saveComments(comments);
+    document.getElementById("form").reset();
+    renderAllComments();
+}
+
+/* ===== Computer Club ===== */
+function saveClubContent(){
+    const content = document.getElementById("clubContent").value;
+    localStorage.setItem("computerClubContent", content);
+    alert("保存しました");
+}
+function loadClubContent(){
+    const saved = localStorage.getItem("computerClubContent") || "";
+    document.getElementById("clubContent").value = saved;
+}
+
+/* ===== 閲覧数 ===== */
+function increaseViews(){
+    let v = localStorage.getItem("views")||0;
+    v++;
+    localStorage.setItem("views",v);
+}
+function getViews(){ return localStorage.getItem("views")||0; }
+
+/* ===== SHA256管理者 ===== */
+async function sha256(text){
+    const buf = new TextEncoder().encode(text);
+    const hash = await crypto.subtle.digest("SHA-256",buf);
+    return Array.from(new Uint8Array(hash))
+        .map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+
+const ADMIN_HASH="158a323a7ba44870f23d96f1516dd70aa48e9a72db4ebb026b0a89e212a208ab";
+async function adminLogin(){
+    const pw=document.getElementById("adminPass").value;
+    const hash=await sha256(pw);
+    if(hash===ADMIN_HASH){
+        document.getElementById("adminLogin").style.display="none";
+        document.getElementById("adminPanel").style.display="block";
+        loadAdminData();
+    }else{
+        alert("認証失敗");
+    }
+}
+
+async function loadAdminData(){
+    try{
+        const ip=await fetch("https://api.ipify.org?format=json")
+        .then(r=>r.json());
+        document.getElementById("ip").innerText=ip.ip;
+    }catch{
+        document.getElementById("ip").innerText="取得不可";
+    }
+
+    const start=performance.now();
+    await fetch("https://jsonplaceholder.typicode.com/posts");
+    const end=performance.now();
+    document.getElementById("speed").innerText=(end-start).toFixed(0)+" ms";
+
+    document.getElementById("views").innerText=getViews();
+}
+
+// ギャラリー拡大表示
+function setupGallery(){
+    const galleryImages = document.querySelectorAll(".gallery img");
+    const overlay = document.createElement("div");
+    overlay.id = "imgOverlay";
+    overlay.addEventListener("click", ()=>overlay.style.display="none");
+    const overlayImg = document.createElement("img");
+    overlay.appendChild(overlayImg);
+    document.body.appendChild(overlay);
+
+    galleryImages.forEach(img=>{
+        img.addEventListener("click", ()=>{
+            overlayImg.src = img.src;
+            overlay.style.display = "flex";
+        });
+    });
+}
+
+window.onload = function(){
+    document.getElementById("defaultOpen").click();
+    increaseViews();
+    loadGame();
+    loadClubContent();
+    setupGallery(); 
+};
+
+function clearAllComments(){
+    saveComments([]);        // 空配列を保存して上書き
+    renderAllComments();     // コメント表示を更新
+}
+</script>
+</head>
+
+<body>
+<div class="overlay">
+
+<h1>篠崎 太智のホームページ</h1>
+
+<div class="tabbar">
+<button class="tabbtn" id="defaultOpen" onclick="openTab('Profile',this)">Profile</button>
+<button class="tabbtn" onclick="openTab('Project',this)">Project</button>
+<button class="tabbtn" onclick="openTab('Private',this)">Private</button>
+<button class="tabbtn" onclick="openTab('commentTab',this)">Comment</button>
+<button class="tabbtn" onclick="openTab('ComputerClub',this)">Computer</button>
+<button class="tabbtn" onclick="openTab('Admin',this)">Admin</button>
+<button class="tabbtn" onclick="openTab('Gallery',this)">Gallery</button>
+</div>
+
+<!-- Profile -->
+<div id="Profile" class="tabcontent">
+    <div class="profile-img">
+       
+    </div>
+    <div class="card">
+        <h2>基本情報</h2>
+        <p>篠崎 太智（しのざき たいち）</p>
+        <p>生年月日：2012年11月27日</p>
+        <p>血液型：A型</p>
+        <p>所属：Kaijo School</p>
+        <p>東京都 新宿区</p>
+        <p><a href="mailto:s19411t@gmail.com" style="color:#00c6ff;">s19411t@gmail.com</a></p>
+    </div>
+</div>
+
+<!-- Project -->
+<div id="Project" class="tabcontent">
+<div class="card">
+<h2>スクラッチ作品</h2>
+横スクロールゲーム pixel gunner<br><br>
+<div id="gameContainer"></div>
+</div>
+</div>
+
+<!-- Private -->
+<div id="Private" class="tabcontent">
+<div class="card">
+<h2>Private Page</h2>
+<div id="loginArea">
+注:認証はlocalhost:3000に接続してnode.js serverが起動してある必要があります。<br>
+パスワード：<br><br>
+<input type="password" id="passwordInput">
+<button onclick="unlockPrivate()">Unlock</button>
+<p id="errorMsg" style="color:red;"></p>
+</div>
+<div id="privateContent" style="display:none;"></div>
+</div>
+</div>
+
+<!-- コメント -->
+<div id="commentTab" class="tabcontent">
+<div class="card">
+<form id="form" onsubmit="event.preventDefault();submitComment();">
+<input type="text" id="name" placeholder="名前" required><br><br>
+<textarea id="message" placeholder="内容" required></textarea><br><br>
+<button type="submit">送信</button>
+</form>
+<h3>コメント一覧</h3>
+<div id="comments"></div>
+</div>
+</div>
+
+<!-- Computer Club -->
+<div id="ComputerClub" class="tabcontent">
+<div class="card">
+<h1>Computer関係</h1>
+<h2>部活</h2>
+<div class="longtext">
+<h3>コンピュータ部に所属。コンピュータ部には富士通のパソコンが3台、ゲーミングPCが2台、その他のデスクトップパソコンが4台ある。略称は昆布。基本的にいろんな人が別のことやっているから団結はあまりない。</h3>
+</div>
+<h2>便利なショートカットキー</h2>
+<div class="short">
+<h3>
+command + C コピー<br>
+command + V ペースト（貼り付け）<br>
+command + X カット（切り取り）<br>
+command + A 全項目の選択<br>
+command + Z 直前の操作を取り消す<br>
+command + S 保存<br>
+command + T 新しいタブを開く<br>
+command + W ウィンドウまたはタブを閉じる<br>
+command + H ウィンドウを非表示<br>
+command + M ウィンドウを最小化<br>
+command + tab ※WindowsではAlt+Tab ウィンドウ切替<br>
+command + Q ※WindowsではAlt+F4 アプリ終了<br>
+command + O ファイルを開く<br>
+command + F 検索<br>
+command + [ 戻る<br>
+command + ] 進む<br>
+command + ↑ ページ先頭<br>
+command + ↓ ページ末尾<br>
+command + shift + 3 全画面スクショ<br>
+command + shift + 4 選択範囲スクショ<br>
+command + N 新規作成<br>
+control + shift + 電源スリープ<br>
+control + 電源 再起動・終了<br>
+control + command + 電源 強制再起動<br>
+control + command + Q 画面ロック<br>
+shift + command + Q ログアウト<br>
+</h3>
+</div>
+</div>
+</div>
+
+<!-- Gallery -->
+<div id="Gallery" class="tabcontent">
+    <div class="card">
+        <h2>パソコンギャラリー</h2>
+        <div class="gallery">
+            <img src="images/28-07-016.jpg" alt="PC1">
+            <img src="images/4125uv6JdaL.jpg" alt="PC2">
+            <img src="images/u700.jpg" alt="PC3">
+            <img src="images/ph1.jpg" alt="PC4">
+        </div>
+    </div>
+</div>
+<!-- Admin -->
+<div id="Admin" class="tabcontent">
+<div class="card">
+<div id="adminLogin">
+<input type="password" id="adminPass" placeholder="管理者パスワード">
+<button onclick="adminLogin()">Login</button>
+</div>
+<div id="adminPanel" style="display:none;">
+<h3>管理者パネル</h3>
+<p>IPアドレス: <span id="ip"></span></p>
+<p>通信速度: <span id="speed"></span></p>
+<p>閲覧数: <span id="views"></span></p>
+<iframe src="https://scratch.mit.edu/projects/612229554/embed" allowtransparency="true" width="485" height="402" frameborder="0" scrolling="no" allowfullscreen></iframe>
+<button onclick="clearAllComments()">コメント全削除</button>
+</div>
+</div>
+</div>
+
+</div> 
+
+
+<footer> ©2026 shinozaki taichi</footer>
+
+</body>
+</html>
